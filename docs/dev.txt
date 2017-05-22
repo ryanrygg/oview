@@ -1,0 +1,35 @@
+Various URLs and notes of potential use for development contributions. 
+
+oview was last developed with the following environment
+- python 3.6.1
+- numpy 1.11.3
+- scipy 0.19.0
+- PyQt 5.8.1
+- Qt 5.8.0
+- qtpy 1.2.1
+- pyqtgraph 0.10.0
+
+Additional python packages:
+- matplotlib
+- pyhdf
+
+
+
+Anaconda python distribution. Includes many python packages of use for data
+  analysis, and a framework for package distribution/updating.
+https://www.continuum.io/anaconda-overview
+https://www.continuum.io/downloads
+
+Restructured text: inline formatting of text documents.
+http://docutils.sourceforge.net/docs/ref/rst/introduction.html
+http://docutils.sourceforge.net/docs/user/rst/quickref.html
+
+Python package notes
+--------------------
+
+* pyqtgraph. A bit faster for interactive use than the excellent, (but
+  sometimes sluggish) matplotlib.
+  http://www.pyqtgraph.org/
+
+* python-hdf4. A fork of pyhdf for hdf4 handling (python 3 compatible) 
+  http://fhs.github.io/python-hdf4/
