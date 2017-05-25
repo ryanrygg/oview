@@ -19,7 +19,7 @@ plt = None # import matplotlib.pyplot as plt
 
 class Hdf():
     """Hdf file data from Omega-60 and Omega-EP data sources."""
-    KNOWN_DATA_SOURCES = ('p510', 'asbo', 'pxrdip') # known hdf file sources
+    KNOWN_DATA_SOURCES = ('p510', 'asbo', 'sop', 'pxrdip') # known hdf file sources
 
     PXRDIP_SCAN_ORDER_DEFAULT = ('U', 'L', 'D', 'R', 'B') # default pxrdip scan order
     PXRDIP_DISPLAY_ORDER = { # display order for PXRDIP plates on omega-60 or ep
@@ -71,7 +71,8 @@ class Hdf():
 
         self.time = filedata.select('SUMMARY_DATA_TIME').get() # time [ns]
         self.power = filedata.select('SUMMARY_DATA_AVERAGE')
-        self.beams = self.power.attributes()['BEAMS'] # list of beams
+        self.beam_power = filedata.select('SUMMARY_DATA_UV').get()
+#        self.beams = self.power.attributes()['BEAMS'] # list of beams
         self.power = self.power.get() # per-beam powers [TW]
 
     def parse_asbo(self, filedata):
@@ -90,6 +91,22 @@ class Hdf():
         A = dat.get().astype(float)
         self.sig = np.rot90(A[0] - A[1], 2)
         self.ref = np.rot90(ref.get().astype(float) - A[1], 2)
+        self.bg = np.rot90(A[1], 2)
+
+    def parse_sop(self, filedata):
+        """Parse Omega SOP hdf (SOP = streaked optical pyrometer)."""
+        dat = filedata.select("Streak_array")
+        att = self.attributes
+        self.shotnum = ""
+        self.location = att['Location']
+        self.unit = att['Unit']
+
+        att_d = dat.attributes()
+        self.sweep_setting = att_d['SweepSpeed']
+        self.timestamp = att_d['TimeStamp']
+
+        A = dat.get().astype(float)
+        self.sig = np.rot90(A[0] - A[1], 2)
         self.bg = np.rot90(A[1], 2)
 
     def parse_pxrdip(self, filedata):
