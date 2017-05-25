@@ -3,6 +3,13 @@
 oview version history
 ---------------------
 
+0.2.2 (2017-05-24)
+++++++++++++++++++
+
++ fixed crash when no file selected in openfile dialog
++ rescale aspect ratio when opening file
+
+
 0.2.1 (2017-05-22)
 ++++++++++++++++++
 

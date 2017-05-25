@@ -54,6 +54,7 @@ class Hdf():
         if self.fileext == '.hdf':
             filedata = sd.SD(self.filename, sd.SDC.READ)
             self.parse_filedata(filedata)
+            print_hdf_info(filedata)
             filedata.end() # close hdf file
 
     def parse_filedata(self, filedata):
@@ -232,7 +233,8 @@ def print_hdf_info(h):
     for d in h.datasets():
         sow("---- {} ----\n".format(d))
         d = h.select(d)
-        sow(d.info() + '\n')
+        sow(str(d.info()))
+        sow('\n')
         att = d.attributes()
         for k in sorted(att.keys()):
             sow("{}\t{}\n".format(k, att[k]))

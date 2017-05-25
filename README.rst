@@ -2,7 +2,7 @@
 OView
 =====
 
-OView is a mult-purpose image and data viewer for Omega hdf files.
+OView is a multi-purpose image and data viewer for Omega hdf files.
 
 The vision is to implement a core of reading and viewing functionality, and to
 be extensible for supporting new Omega-60 or Omega-EP hdf data sources. Some

@@ -9,7 +9,7 @@ keyboard shortcuts:
 """ # module docstring doubles as help window text
 
 __author__ = "J. Ryan Rygg"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 #==============================================================================
 import os.path as osp
@@ -18,12 +18,11 @@ import sys
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QTextEdit
-from PyQt5.QtWidgets import QDesktopWidget, QFileDialog
+from PyQt5.QtWidgets import (
+        QApplication, QMainWindow, QDesktopWidget, QFileDialog,
+        QLabel, QTextEdit,
+)
 from PyQt5.QtGui import QIcon
-
-FILE_PATH = osp.dirname(__file__)
-sys.path.append(osp.abspath(FILE_PATH))
 
 from .io import read_hdf
 
@@ -34,6 +33,7 @@ sp_misc = None # import scipy.misc
 # Interpret image data as row-major instead of col-major
 pg.setConfigOptions(imageAxisOrder='row-major')
 
+FILE_PATH = osp.abspath(osp.dirname(__file__))
 ICON_PATH = osp.abspath(osp.join(FILE_PATH, '..', 'oview_data', 'oview48.png'))
 STARTDIR = None # TODO: allow user to specify default starting directory
 
@@ -47,21 +47,29 @@ class OViewMainWindow(QMainWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self._init_UI()
         self._init_shortcuts()
+        self.show()
+
         if filename is None:
             self.openDialog()
         else:
             self.open(filename)
 
+        self.lut.show()
+        self.lut.move_to_parent()
+        self.activateWindow() # return active window state to self
+
     def _init_UI(self):
         self.setWindowTitle(self.WINTITLE_PREFIX)
         self.setWindowIcon(QIcon(ICON_PATH))
-        self.show()
-        self.resize_maxrect(mult=0.95, aspect=0.7)
+        self.resize_maxrect()
 
         #--- pyqtgraph widgets ---
         self.graphics_widget = pg.GraphicsLayoutWidget()
         self.graphics_widget.ci.layout.setContentsMargins(2, 2, 2, 2)
         self.setCentralWidget(self.graphics_widget)
+
+        self.statusbar_right = QLabel("")
+        self.statusBar().addPermanentWidget(self.statusbar_right)
 
         # A plot area (ViewBox + axes) for displaying the image
         self.plot1 = self.graphics_widget.addPlot()
@@ -69,12 +77,12 @@ class OViewMainWindow(QMainWindow):
 
         # Item for displaying image data
         self.img1 = pg.ImageItem()
+#        self.img1.setImage(np.ones((2,2)))
         self.plot1.addItem(self.img1)
 
         # Contrast/color control
         self.lut = LUTWindow(self)
         self.hist = self.lut.hist
-        self.activateWindow() # return active window state to self
 
         # mouse move updates
         self.proxy = pg.SignalProxy(self.plot1.scene().sigMouseMoved,
@@ -96,7 +104,7 @@ class OViewMainWindow(QMainWindow):
         for ks in ("Ctrl+w", "Ctrl+F4", "Ctrl+q"):
             QShortcut(QtGui.QKeySequence(ks), self, self.close)
 
-    def resize_maxrect(self, mult=1.0, aspect=1.0):
+    def resize_maxrect(self, mult=0.9, aspect=1.0):
         """resize frame to a multiple of the maximum-size square
 
         mult: scale vs max
@@ -119,6 +127,8 @@ class OViewMainWindow(QMainWindow):
 
     def reset_plotview(self):
         """Reset the plot view (slightly different than autoscale)."""
+        if not hasattr(self, "data"):
+            return
         Ny, Nx = np.shape(self.data)
         self.plot1.setXRange(0, Nx, padding=0)
         self.plot1.setYRange(0, Ny, padding=0)
@@ -126,6 +136,8 @@ class OViewMainWindow(QMainWindow):
     def mouse_moved(self, evt):
         """update statusbar with x,y,z of mouse event"""
         if not self.plot1.sceneBoundingRect().contains(evt[0]):
+            return
+        if not hasattr(self, "data",):
             return
 
         mousePoint = self.plot1.vb.mapSceneToView(evt[0])
@@ -146,7 +158,8 @@ class OViewMainWindow(QMainWindow):
             startdir = STARTDIR
             self.opendialog_called = True
 
-        filename = QFileDialog.getOpenFileName(self, 'Open file', startdir)[0]
+        title = "{}: Open File".format(self.WINTITLE_PREFIX)
+        filename = QFileDialog.getOpenFileName(self, title, startdir)[0]
         if filename:
             self.open(filename)
 
@@ -166,7 +179,7 @@ class OViewMainWindow(QMainWindow):
             return
 
         # TODO: enable toggling between linear and log imagescale
-        if True:
+        if False:
             self.logdata = np.empty_like(A)
             self.logdata[A>0] = np.log10(A[A>0])
             self.logdata[A<=0] = np.nan
@@ -175,11 +188,14 @@ class OViewMainWindow(QMainWindow):
             self.data = self.lindata = A
 
         self.img1.setImage(self.data)
+        self.resize_maxrect(aspect=A.shape[1]/A.shape[0])
         self.reset_plotview()
+        self.lut.move_to_parent()
         self.lut.setLevels()
 
         self.filename = filename
         self.statusBar().showMessage("opened file: {}".format(filename))
+        self.statusbar_right.setText(osp.split(filename)[1])
         self.setWindowTitle("{}: {}".format(self.WINTITLE_PREFIX, filename))
 
     def helpDialog(self):
@@ -201,7 +217,6 @@ class LUTWindow(QMainWindow):
         self.parent_window = parent
         self.setWindowTitle("LUT")
         self.setWindowIcon(QIcon(ICON_PATH))
-        self.show()
 
         self.graphics_widget = pg.GraphicsLayoutWidget()
         self.setCentralWidget(self.graphics_widget)
@@ -211,8 +226,6 @@ class LUTWindow(QMainWindow):
         self.hist.setImageItem(self.parent_window.img1)
         self.graphics_widget.addItem(self.hist)
         self.hist.gradient.loadPreset('thermal') # pyqtgraph preset gradient
-
-        self.move_to_parent()
 
         # shortcuts
         QtGui.QShortcut(QtCore.Qt.Key_L, self, self.move_to_parent)
@@ -257,4 +270,5 @@ def main():
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
+    import oview
     main()
